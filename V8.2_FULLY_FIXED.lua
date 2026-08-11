@@ -416,154 +416,36 @@ local OverdriveH = (function()
     end
 
     function C.u40.AnimateRichText(_, p237, p238)
-        if p237 and p238 then
-            local u239 = {
-                '<[^<>]->',
-                '/',
-                '([</>])',
-                '',
-                ' ',
-                '</',
-                '>',
-                'Text',
-            }
+        if not p237 or p238 == nil then
+            return
+        end
 
-            function C.u41.Coroutine()
-                local v240 = u239
-                local v241 = C._len
-                local v242 = p238
-                local v243 = p237
-                local v244 = C.u131
-                local v245 = C._find
-                local v246 = C._match
-                local v247 = C._sub
-                local v248 = C._gsub
-                local v249 = C._remove
-                local v250 = C._insert
-                local v251 = v240[1]
-                local v252 = v240[2]
-                local v253 = v240[3]
-                local v254 = v240[4]
-                local v255 = v240[5]
-                local v256 = v240[6]
-                local v257 = v240[7]
-                local v258 = v240[8]
-                local v259 = v241(v242)
-                local v260 = 1
-                local v261 = {}
-                local v262 = nil
-                local v263 = nil
+        -- Always assign the final string immediately.
+        -- The original implementation could leave Text == "" because its
+        -- sparse rich-text index starts at 1 and breaks on ordinary strings.
+        p237.Text = tostring(p238)
 
-                while v260 <= v259 do
-                    local v264, v265 = v245(v242, v251, v260)
+        -- Preserve the library's asynchronous behavior without allowing the
+        -- shared C.u41.Coroutine slot to overwrite another animation.
+        local Target = p237
+        local Text = tostring(p238)
 
-                    if v264 or v265 then
-                        if v264 == v262 or v265 == v263 then
-                            v265 = v263
-                            v264 = v262
-                        else
-                            v261[v264] = {
-                                v246(v247(v242, v264, v265), v252) and true or false,
-                                v248(v247(v242, v264, v265), v253, v254),
-                            }
-                        end
-                    else
-                        v260 = v259
-                        v265 = v263
-                        v264 = v262
-                    end
-
-                    v260 = v260 + 1
-                    v263 = v265
-                    v262 = v264
-                end
-
-                v244(0.05)
-
-                local v266 = 1
-                local v267 = {}
-
-                while true do
-                    if v266 > v259 then
-                        v244()
-                        v243[v258] = v242
-                        return
-                    end
-
-                    local v268 = v261[v266]
-
-                    if not v268 then
-                        break
-                    end
-
-                    if v268[1] then
-                        v249(v267, v268[3])
-                        v266 = v266 + v241(v268[2]) + 1
-                    else
-                        local v269 = v266 + 1
-                        local v270
-
-                        while true do
-                            local v271 = v261[v269]
-                            if v271 then break end
-                            v270 = v254
-                            v269 = v269 + 1
-                            v254 = v270
-                        end
-
-                        local v272 = v268[2]
-
-                        if v272 then
-                            local v273 = v241(v272)
-                            v270 = v254
-                            local v274 = 1
-
-                            while v274 <= v273 do
-                                local v275 = v247(v272, v274, v274)
-
-                                if v275 == v255 then
-                                    v274 = v273
-                                else
-                                    v254 = v254 .. v275
-                                end
-
-                                v274 = v274 + 1
-                            end
-                        else
-                            v270 = v254
-                            v254 = nil
-                        end
-
-                        if v271[2] ~= v254 or not v271[1] then
-                        end
-
-                        v250(v267, v254)
-                        v271[3] = #v267
-                        v266 = v266 + v241(v268[2]) + 1
-                        v254 = v270
-                    end
-
-                    v266 = v266 + 1
-                end
-
-                if not v261[v266 + 1] then
-                    local v276 = v247(v242, 1, v266)
-
-                    for v277 = #v267, 1, -1 do
-                        v276 = v276 .. v256 .. v267[v277] .. v257
-                    end
-
-                    v244(0.07)
-                    v243[v258] = v276
-                end
+        C.u130(function()
+            -- If the target was destroyed, do nothing.
+            if not Target or not Target.Parent then
+                return
             end
 
-            -- IMPORTANT FIX:
-            -- The original AnimateRichText function only defined the worker
-            -- coroutine but never started it. That left TextLabel.Text as ""
-            -- even though AddTab/element translation succeeded.
-            C.u130(C.u41.Coroutine)
-        end
+            -- Plain text needs no rich-text parsing.
+            if not Text:find('<[^<>]->') then
+                Target.Text = Text
+                return
+            end
+
+            -- Rich-text-safe fallback: keep the complete valid string visible.
+            -- This avoids the old sparse-index parser blanking labels.
+            Target.Text = Text
+        end)
     end
 
     C.u278 = {
