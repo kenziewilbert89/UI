@@ -3553,7 +3553,7 @@ end
             function u1327.__ONREGISTER()
                 u1290:Kick(u1327.__NOTICE)
             end
-            function u1240.Coroutine()
+            local function TabElementRenderer()
                 local v1329 = u1326
                 local u1330 = C._Heartbeat
                 local v1331 = u1309
@@ -5079,11 +5079,10 @@ end
                 end
             end
 
-            -- Capture the renderer only after the actual AddTab element
-            -- renderer has been defined. The previous fix captured
-            -- u1240.Coroutine too early, while it still referred to the
-            -- version-check coroutine.
-            local TabRenderer = u1240.Coroutine
+            -- Keep the AddTab renderer local to this tab.  u1240.Coroutine is
+            -- a shared task slot used elsewhere by the original library and
+            -- must never be used as storage for the tab element renderer.
+            local TabRenderer = TabElementRenderer
             if type(TabRenderer) ~= 'function' then
                 error('Overdrive H V8.2 FIX: AddTab element renderer is unavailable')
             end
