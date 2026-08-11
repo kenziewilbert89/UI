@@ -5042,7 +5042,7 @@ end
                                     if v1637 and _s(v1637) then
                                         _Box3.Text = v1355(v1637)
                                     else
-                                        _TextBox[u1630] = Default
+                                        _TextBox[u1630] = v1390.Default
                                     end
 
                                     u1240.Spawn = {
@@ -5112,6 +5112,11 @@ end
             local _t14 = C.u77.t
             local _Error2 = u1290.Error
 
+            -- Each AddTab owns a private snapshot of its element renderer.
+            -- Do not use the shared u1240.Coroutine slot here: other library
+            -- systems and later tabs can overwrite that shared field.
+            local u1646 = u1240.Coroutine
+
             return C.u16(u1327, {
                 __tostring = function()
                     return u1328
@@ -5152,6 +5157,12 @@ end
                         end
                     else
                         u1298(u1326, p1648)
+
+                        -- registerProperty is called AFTER AddTab() returns.
+                        -- The original renderer was only defined, never invoked,
+                        -- leaving Sleeker empty. Render this tab's newly registered
+                        -- property immediately using its private renderer.
+                        u1646()
                     end
                 end,
             })
