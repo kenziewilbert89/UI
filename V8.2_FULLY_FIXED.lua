@@ -2541,15 +2541,16 @@ end
         local u929 = {}
 local u930 = true
 local u931 = '1.9'
-local u932 = 'Dark'
+local u932 = nil
 local u933 = nil
 local u934 = nil
 
--- V8.2 FIX: initialize theme BEFORE any AddTab can access UFB/USC.
+-- V8.2 FIX:
+-- Theme harus sudah tersedia sebelum AddTab dibuat.
 local u935 = u923.Dark
 
 if not u935 then
-    error('Overdrive H V8.2 FIX: Dark theme is missing from ThemeList')
+    error('Overdrive H V8.2: Dark theme configuration is missing')
 end
 
 local u936 = true
