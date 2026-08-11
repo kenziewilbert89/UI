@@ -2539,20 +2539,24 @@ end
         local u927 = {}
         local u928 = {}
         local u929 = {}
-        local u930 = true
-        local u931 = '1.9'
-        local u932 = nil
-        local u933 = nil
-        local u934 = nil
-        local u935 = nil
-        local u936 = true
-        local u937 = true
-        local u938 = {}
+local u930 = true
+local u931 = '1.9'
+local u932 = 'Dark'
+local u933 = nil
+local u934 = nil
 
-        -- V8.2 FIX: keep UI references directly tied to the constructor.
-        -- StarterFrame is u921; MainFrame is its actual MainFrame child.
-        -- TabFrame is the actual ScrollingFrame created inside MainFrame.
-        local StarterFrame = u921
+-- V8.2 FIX: initialize theme BEFORE any AddTab can access UFB/USC.
+local u935 = u923.Dark
+
+if not u935 then
+    error('Overdrive H V8.2 FIX: Dark theme is missing from ThemeList')
+end
+
+local u936 = true
+local u937 = true
+local u938 = {}
+
+local StarterFrame = u921
         local MainFrame = _MainFrame
         local TabFrame = MainFrame:FindFirstChild('TabFrame')
         if not TabFrame then
@@ -2652,16 +2656,29 @@ end
                 if u933 then
                     u933.Rotation = 0
                 end
-            elseif p965 == 'Theme' and u932 ~= p966 then
-                local u968 = u906
+elseif p965 == 'Theme' and u932 ~= p966 then
+    local u968 = u906
 
-                u935 = u923[p966]
+    local SelectedTheme = u923[p966]
 
-                if not u935 then
-                    p964:ApplySetting(p965, u968.ThemeList[1])
+    if not SelectedTheme then
+        local FallbackThemeName = u968.ThemeList[1]
+        SelectedTheme = u923[FallbackThemeName]
 
-                    return
-                end
+        if not SelectedTheme then
+            error('Overdrive H V8.2 FIX: no valid theme configuration exists')
+        end
+
+        p966 = FallbackThemeName
+    end
+
+    u935 = SelectedTheme
+
+    -- IMPORTANT:
+    -- u1237 is the theme reference exposed to AddTab/getTheme.
+    -- Keep it synchronized with the actual selected theme.
+    u1237 = u935
+    u932 = p966
 
                 local u969 = _MainFrame
                 local v970 = u915
