@@ -5079,10 +5079,10 @@ end
                 end
             end
 
-            -- The element renderer is local to this AddTab invocation.
-            -- Capture it before another tab can overwrite the shared
-            -- u1240.Coroutine slot. Property registration below schedules
-            -- this exact renderer once per update cycle.
+            -- Capture the renderer only after the actual AddTab element
+            -- renderer has been defined. The previous fix captured
+            -- u1240.Coroutine too early, while it still referred to the
+            -- version-check coroutine.
             local TabRenderer = u1240.Coroutine
             if type(TabRenderer) ~= 'function' then
                 error('Overdrive H V8.2 FIX: AddTab element renderer is unavailable')
