@@ -2365,7 +2365,14 @@ end
     -- ============================================
 
     C.v1655 = function()
-    C.u41 = C.u41 or {}
+        -- Reuse the constructor-owned UI if C.v1655 is requested again in
+        -- the same library execution. This prevents a second Window from
+        -- being created by a later internal/game-specific call.
+        if C.UI and C.UI.MainFrame and C.UI.StarterFrame then
+            return C.UI
+        end
+
+        C.u41 = C.u41 or {}
         local u906 = C.u40
         local u907 = C.u155
         local u908 = C.u131
@@ -5072,6 +5079,44 @@ end
                 end
             end
 
+            -- The element renderer is local to this AddTab invocation.
+            -- Capture it before another tab can overwrite the shared
+            -- u1240.Coroutine slot. Property registration below schedules
+            -- this exact renderer once per update cycle.
+            local TabRenderer = u1240.Coroutine
+            if type(TabRenderer) ~= 'function' then
+                error('Overdrive H V8.2 FIX: AddTab element renderer is unavailable')
+            end
+
+            local RenderScheduled = false
+            local RenderRunning = false
+
+            local function ScheduleTabRender()
+                if RenderScheduled or RenderRunning then
+                    return
+                end
+
+                RenderScheduled = true
+
+                local function Run()
+                    RenderScheduled = false
+
+                    if RenderRunning then
+                        return
+                    end
+
+                    RenderRunning = true
+                    TabRenderer()
+                    RenderRunning = false
+                end
+
+                if task and task.defer then
+                    task.defer(Run)
+                else
+                    C.u130(Run)
+                end
+            end
+
             local u1639 = {
                 'getHUD',
                 'getTheme',
@@ -5112,11 +5157,6 @@ end
             local _t14 = C.u77.t
             local _Error2 = u1290.Error
 
-            -- Each AddTab owns a private snapshot of its element renderer.
-            -- Do not use the shared u1240.Coroutine slot here: other library
-            -- systems and later tabs can overwrite that shared field.
-            local u1646 = u1240.Coroutine
-
             return C.u16(u1327, {
                 __tostring = function()
                     return u1328
@@ -5156,13 +5196,11 @@ end
                             _Error2(u1290, v1649[8])
                         end
                     else
+                        -- Store the property first. Rendering is deferred until
+                        -- the current registration burst finishes, so AddTab
+                        -- does not render the same property repeatedly.
                         u1298(u1326, p1648)
-
-                        -- registerProperty is called AFTER AddTab() returns.
-                        -- The original renderer was only defined, never invoked,
-                        -- leaving Sleeker empty. Render this tab's newly registered
-                        -- property immediately using its private renderer.
-                        u1646()
+                        ScheduleTabRender()
                     end
                 end,
             })
