@@ -1295,7 +1295,7 @@ local OverdriveH = (function()
         local v486 = C.u483[v485]
 
         if v486 then
-            local v487 = C._HttpRequest2(C.u40, 'https://raw.githubusercontent.com/ItsJiDy/Overdrive-H/refs/heads/main/lang/' .. v486 .. '.json')
+            local v487 = C._HttpRequest2(C.u40, '-- DISABLED_LANGUAGE_ENDPOINT --' .. v486 .. '.json')
 
             if v487 then
                 local v488 = C._JSDecode(C.u40, v487)
@@ -1315,6 +1315,7 @@ local OverdriveH = (function()
     C.u484['en-us'] = C.u484['en-us'] or {}
     C.u489 = 'en-us'
     C.u490 = 'en-us'
+    C._EnglishOnly = true
 
     function C.u40.SelectLanguage(_, p491)
         local v492 = C.u483
@@ -1339,7 +1340,7 @@ local OverdriveH = (function()
     }
 
     function C.u40.TranslateMatchs(_, p496)
-        local v497 = C.u484[C.u489] or C.u484['en-us'] or {}
+        local v497 = C.u484['en-us'] or {}
         local v498 = v497[p496]
 
         if v498 then
@@ -5373,6 +5374,8 @@ end
             print("[V8.2][UI-CHECK] Tasker module = OK")
             print("[V8.2][UI-CHECK] Module source = embedded local playtween/tasker/json")
             print("[V8.2][UI-CHECK] Remote Modules// loader = DISABLED")
+            print("[V8.2][UI-CHECK] Language = ENGLISH ONLY")
+            print("[V8.2][UI-CHECK] External language endpoint = DISABLED")
             print("[V8.2][UI-CHECK] Game detection = DISABLED")
             print("[V8.2][UI-CHECK] Safe UI callback mode = ENABLED")
 
