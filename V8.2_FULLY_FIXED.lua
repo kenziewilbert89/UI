@@ -2632,25 +2632,20 @@ end
         local u927 = {}
         local u928 = {}
         local u929 = {}
-local u930 = true
-local u931 = '1.9'
-local u932 = nil
-local u933 = nil
-local u934 = nil
+        local u930 = true
+        local u931 = '1.9'
+        local u932 = nil
+        local u933 = nil
+        local u934 = nil
+        local u935 = nil
+        local u936 = true
+        local u937 = true
+        local u938 = {}
 
--- V8.2 FIX:
--- Theme harus sudah tersedia sebelum AddTab dibuat.
-local u935 = u923.Dark
-
-if not u935 then
-    error('Overdrive H V8.2: Dark theme configuration is missing')
-end
-
-local u936 = true
-local u937 = true
-local u938 = {}
-
-local StarterFrame = u921
+        -- V8.2 FIX: keep UI references directly tied to the constructor.
+        -- StarterFrame is u921; MainFrame is its actual MainFrame child.
+        -- TabFrame is the actual ScrollingFrame created inside MainFrame.
+        local StarterFrame = u921
         local MainFrame = _MainFrame
         local TabFrame = MainFrame:FindFirstChild('TabFrame')
         if not TabFrame then
@@ -2754,17 +2749,15 @@ local StarterFrame = u921
                 local u968 = u906
 
                 u935 = u923[p966]
+                -- Keep the constructor's cached theme reference synchronized.
+                -- AddTab and element constructors read UFB/USC from this reference.
+                u1237 = u935
 
-u935 = u923[p966]
+                if not u935 then
+                    p964:ApplySetting(p965, u968.ThemeList[1])
 
-if not u935 then
-    p964:ApplySetting(p965, u968.ThemeList[1])
-    return
-end
-
--- V8.2 FIX:
--- Keep the theme reference used by AddTab synchronized.
-u1237 = u935
+                    return
+                end
 
                 local u969 = _MainFrame
                 local v970 = u915
@@ -3453,6 +3446,15 @@ u1237 = u935
         local u1287 = nil
 
         function v926.AddTab(_, p1288, p1289)
+            if not u1237 then
+                -- Theme should have been initialized by ApplySetting before tabs are created.
+                -- Do not fabricate a theme; use the library's first configured theme.
+                v926:ApplySetting('Theme', u906.ThemeList[1])
+            end
+            if not u1237 then
+                error('Overdrive H V8.2 FINAL: Theme state is unavailable before AddTab')
+            end
+
             local u1290 = u906
             local u1291 = MainFrame
             local u1292 = u910
