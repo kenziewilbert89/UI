@@ -2539,25 +2539,28 @@ end
         local u927 = {}
         local u928 = {}
         local u929 = {}
-local u930 = true
-local u931 = '1.9'
-local u932 = nil
-local u933 = nil
-local u934 = nil
+        local u930 = true
+        local u931 = '1.9'
+        local u932 = nil
+        local u933 = nil
+        local u934 = nil
 
--- V8.2 FIX:
--- Theme harus sudah tersedia sebelum AddTab dibuat.
-local u935 = u923.Dark
+        -- V8.2 FIX: initialize the active theme BEFORE AddTab can read it.
+        -- AddTab uses u1237.UFB / u1237.USC, so u935 must never start nil.
+        local u935 = u923.Dark
 
-if not u935 then
-    error('Overdrive H V8.2: Dark theme configuration is missing')
-end
+        if not u935 then
+            error('Overdrive H V8.2: Dark theme configuration is missing')
+        end
 
-local u936 = true
-local u937 = true
-local u938 = {}
+        local u936 = true
+        local u937 = true
+        local u938 = {}
 
-local StarterFrame = u921
+        -- V8.2 FIX: keep UI references directly tied to the constructor.
+        -- StarterFrame is u921; MainFrame is its actual MainFrame child.
+        -- TabFrame is the actual ScrollingFrame created inside MainFrame.
+        local StarterFrame = u921
         local MainFrame = _MainFrame
         local TabFrame = MainFrame:FindFirstChild('TabFrame')
         if not TabFrame then
@@ -2568,7 +2571,10 @@ local StarterFrame = u921
         local u1234 = u916
         local u1235 = u928
         local u1236 = u933
+
+        -- This is the live theme reference consumed by AddTab.
         local u1237 = u935
+
         local u1239 = u929
         local u1240 = u914
         local u1241 = u1056
@@ -2657,29 +2663,25 @@ local StarterFrame = u921
                 if u933 then
                     u933.Rotation = 0
                 end
-elseif p965 == 'Theme' and u932 ~= p966 then
-    local u968 = u906
+            elseif p965 == 'Theme' and u932 ~= p966 then
+                local u968 = u906
 
-    local SelectedTheme = u923[p966]
+                u935 = u923[p966]
 
-    if not SelectedTheme then
-        local FallbackThemeName = u968.ThemeList[1]
-        SelectedTheme = u923[FallbackThemeName]
+                if not u935 then
+                    local FallbackThemeName = u968.ThemeList[1]
+                    u935 = u923[FallbackThemeName]
 
-        if not SelectedTheme then
-            error('Overdrive H V8.2 FIX: no valid theme configuration exists')
-        end
+                    if not u935 then
+                        error('Overdrive H V8.2: no valid theme configuration exists')
+                    end
 
-        p966 = FallbackThemeName
-    end
+                    p966 = FallbackThemeName
+                end
 
-    u935 = SelectedTheme
-
-    -- IMPORTANT:
-    -- u1237 is the theme reference exposed to AddTab/getTheme.
-    -- Keep it synchronized with the actual selected theme.
-    u1237 = u935
-    u932 = p966
+                -- IMPORTANT: AddTab closes over u1237, not u935.
+                -- Keep both references synchronized whenever the theme changes.
+                u1237 = u935
 
                 local u969 = _MainFrame
                 local v970 = u915
@@ -5181,6 +5183,11 @@ elseif p965 == 'Theme' and u932 ~= p966 then
         v926.TabFrame = TabFrame
         v926.Title = MainFrame.Title
 
+        -- Keep the original library-level proxy references alive.
+        -- They are consumed by notification/bindable code after startup.
+        C.u137 = v926
+        C.u139 = v926
+
         -- ============================================================
         -- V8.2 UI DIAGNOSTIC
         -- IMPORTANT: every reference below points to the objects created
@@ -5300,6 +5307,20 @@ elseif p965 == 'Theme' and u932 ~= p966 then
                 error("[V8.2][UI-CHECK] Registered Tasker API is incomplete")
             end
             print("[V8.2][UI-CHECK] Registered Tasker API = OK")
+
+            if typeof(u1237) ~= "table" then
+                error("[V8.2][UI-CHECK] Active theme reference = NIL/invalid")
+            end
+
+            if typeof(u1237.UFB) ~= "Color3" then
+                error("[V8.2][UI-CHECK] Active theme UFB is invalid")
+            end
+
+            if typeof(u1237.USC) ~= "Color3" then
+                error("[V8.2][UI-CHECK] Active theme USC is invalid")
+            end
+
+            print("[V8.2][UI-CHECK] Active theme = OK")
 
             if C._V82OpeningStarted ~= true then
                 error("[V8.2][UI-CHECK] Opening initialization state is not active")
