@@ -557,6 +557,12 @@ local OverdriveH = (function()
                     v243[v258] = v276
                 end
             end
+
+            -- IMPORTANT FIX:
+            -- The original AnimateRichText function only defined the worker
+            -- coroutine but never started it. That left TextLabel.Text as ""
+            -- even though AddTab/element translation succeeded.
+            C.u130(C.u41.Coroutine)
         end
     end
 
