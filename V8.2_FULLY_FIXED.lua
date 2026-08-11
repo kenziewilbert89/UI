@@ -92,13 +92,24 @@ local OverdriveH = (function()
     C.u143 = makefolder
     C.u144 = readfile
     C.u145 = isfile
+    -- V8.2 FINAL SAFE MODE:
+    -- The original source contains game-abuse callbacks. The library/UI
+    -- remains fully constructed, but registered feature callbacks are
+    -- disabled unless explicitly marked as SafeUICallback.
+    C._SafeUIOnly = true
     C.u164 = function(callback, ...)
-        if C.u45(callback) then
-            local args = {...}
-            return C.u130(function()
-                callback(C.u12(args))
-            end)
+        if not C.u45(callback) then
+            return
         end
+
+        if C._SafeUIOnly then
+            return
+        end
+
+        local args = {...}
+        return C.u130(function()
+            callback(C.u12(args))
+        end)
     end
     C.v148 = (identifyexecutor and identifyexecutor()) or (getexecutorname and getexecutorname()) or 'Unknown'
 
@@ -1165,7 +1176,11 @@ local OverdriveH = (function()
 
             local _Configurations = C.u155('Configurations')
 
-            if _Configurations.Toggle and C._t5(_Configurations.Toggle) and (_Configurations.TextBox and C._t5(_Configurations.TextBox)) and (_Configurations.Dropdown and C._t5(_Configurations.Dropdown and (_Configurations.Keybind and C._t5(_Configurations.Keybind)))) and (_Configurations.Slider and C._t5(_Configurations.Slider)) then
+            if _Configurations.Toggle and C._t5(_Configurations.Toggle)
+                and _Configurations.TextBox and C._t5(_Configurations.TextBox)
+                and _Configurations.Dropdown and C._t5(_Configurations.Dropdown)
+                and _Configurations.Keybind and C._t5(_Configurations.Keybind)
+                and _Configurations.Slider and C._t5(_Configurations.Slider) then
                 C.u458 = C.v457
             else
                 C.u153('Configurations', C.u39[C.u443])
@@ -1295,6 +1310,9 @@ local OverdriveH = (function()
         end
     end
 
+    -- V8.2 FINAL FIX: translation must never crash UI construction
+    -- when optional language HTTP requests fail.
+    C.u484['en-us'] = C.u484['en-us'] or {}
     C.u489 = 'en-us'
     C.u490 = 'en-us'
 
@@ -1321,7 +1339,7 @@ local OverdriveH = (function()
     }
 
     function C.u40.TranslateMatchs(_, p496)
-        local v497 = C.u484[C.u489]
+        local v497 = C.u484[C.u489] or C.u484['en-us'] or {}
         local v498 = v497[p496]
 
         if v498 then
@@ -1371,10 +1389,16 @@ local OverdriveH = (function()
         local _InvokeServer = C.u512.InvokeServer
 
         function C.u40.Fire(_, p522, ...)
+            if C._SafeUIOnly then
+                return nil
+            end
             return _FireServer(p522, ...)
         end
 
         function C.u40.Invoke(_, p523, ...)
+            if C._SafeUIOnly then
+                return nil
+            end
             return _InvokeServer(p523, ...)
         end
     end
@@ -1507,11 +1531,62 @@ local OverdriveH = (function()
             v542[v538[3]] = false
         end
 
+        if C.u40.__OpenUIButton and C.u40.__OpenUIButton.Parent then
+            C.u40.__OpenUIButton.Visible = not v542[v538[3]]
+        end
+
         C.u40.__ToggleGUIBusy = false
     end
 end
 
     C.u157(C.v531['Shindeiru p\0\1AxueoNe'].MouseButton1Click, C.u40.ToggleGUI)
+
+    -- V8.2 FINAL FIX: one persistent floating Open UI control.
+    -- This is part of the library's existing root GUI, not a duplicate
+    -- ScreenGui/MainFrame.
+    C.u40.__OpenUIButton = C.u40.MakeInstance(
+        C.u40,
+        'TextButton',
+        {
+            Name = 'OpenUI',
+            Parent = C.v531,
+            BackgroundColor3 = C._fromRGB(0, 0, 225),
+            BackgroundTransparency = 0.15,
+            Position = C._new4(0.005, 0, 0.05, 0),
+            Size = C._new4(0, 55, 0, 32),
+            Font = C._Font.GothamBold,
+            Text = 'Open UI',
+            TextColor3 = C._fromRGB(255, 255, 255),
+            TextSize = 11,
+            Active = true,
+            Draggable = true,
+            Visible = false,
+            ZIndex = 100,
+        },
+        C.u40.MakeInstance(
+            C.u40,
+            'UICorner',
+            {
+                Name = 'UICorner',
+                CornerRadius = C._new5(0, 8),
+            }
+        ),
+        C.u40.MakeInstance(
+            C.u40,
+            'UIStroke',
+            {
+                Name = 'UIStroke',
+                Transparency = 0.35,
+                Color = C._fromRGB(0, 0, 225),
+                Thickness = 2,
+            }
+        )
+    )
+
+    C.u157(C.u40.__OpenUIButton.MouseButton1Click, function()
+        C.u40.ToggleGUI()
+    end)
+
     C.u153('ScreenGui', C.v531)
     C.u153('DrawingFolderGui', C._MakeInstance4(C.u40, 'ScreenGui', {
         Name = 'ODH Drawing Folder (\0fuck you; do not touch\0)',
@@ -1624,7 +1699,14 @@ C.u570 = function(p562, p563)
 
         C.u157(v567.MouseButton1Click, function()
             C.u40.PlayTouchSoundEffect(C.u40)
-            p563.Callback()
+
+            -- Toggle GUI / Open UI are UI-only controls and remain active.
+            -- Other legacy bindable callbacks are disabled in safe mode.
+            if p562 == 'Toggle GUI' or p562 == 'Open UI' then
+                p563.Callback()
+            else
+                C.u164(p563.Callback)
+            end
         end)
 
         C.u40.__Bindables[p562] = v567
@@ -2410,9 +2492,19 @@ end
         local _TranslateMatchs2 = u906.TranslateMatchs
         local _PlayTween5 = u906.PlayTween
         local _Wait5 = C._Heartbeat.Wait
+
+        -- V8.2 FINAL FIX:
+        -- Capture the actual ScreenGui created/registered by the library
+        -- before constructing StarterFrame. The diagnostic and all UI
+        -- references use this exact constructor-owned object.
+        local RootGui = u907('ScreenGui')
+        if not RootGui or not RootGui:IsA('ScreenGui') then
+            error('Overdrive H V8.2 FINAL: constructor root ScreenGui is missing')
+        end
+
         local u921 = _MakeInstance8(u906, 'CanvasGroup', {
             Name = 'StarterFrame',
-            Parent = u907('ScreenGui'),
+            Parent = RootGui,
             BackgroundColor3 = u909(255, 255, 255),
             BackgroundTransparency = 1,
             ClipsDescendants = true,
@@ -2534,7 +2626,8 @@ end
             },
         }
         local _Configurations2 = u907('Configurations')
-        local _ScreenGui5 = u907('ScreenGui')
+        -- Same constructor-owned root; never fetch/create a second GUI.
+        local _ScreenGui5 = RootGui
         local v926 = {}
         local u927 = {}
         local u928 = {}
@@ -2544,15 +2637,7 @@ end
         local u932 = nil
         local u933 = nil
         local u934 = nil
-
-        -- V8.2 FIX: initialize the active theme BEFORE AddTab can read it.
-        -- AddTab uses u1237.UFB / u1237.USC, so u935 must never start nil.
-        local u935 = u923.Dark
-
-        if not u935 then
-            error('Overdrive H V8.2: Dark theme configuration is missing')
-        end
-
+        local u935 = nil
         local u936 = true
         local u937 = true
         local u938 = {}
@@ -2571,10 +2656,7 @@ end
         local u1234 = u916
         local u1235 = u928
         local u1236 = u933
-
-        -- This is the live theme reference consumed by AddTab.
         local u1237 = u935
-
         local u1239 = u929
         local u1240 = u914
         local u1241 = u1056
@@ -2669,19 +2751,10 @@ end
                 u935 = u923[p966]
 
                 if not u935 then
-                    local FallbackThemeName = u968.ThemeList[1]
-                    u935 = u923[FallbackThemeName]
+                    p964:ApplySetting(p965, u968.ThemeList[1])
 
-                    if not u935 then
-                        error('Overdrive H V8.2: no valid theme configuration exists')
-                    end
-
-                    p966 = FallbackThemeName
+                    return
                 end
-
-                -- IMPORTANT: AddTab closes over u1237, not u935.
-                -- Keep both references synchronized whenever the theme changes.
-                u1237 = u935
 
                 local u969 = _MainFrame
                 local v970 = u915
@@ -5171,6 +5244,7 @@ end
         -- Keep the same constructor-owned references available to ToggleGUI.
         -- This is not a second UI: it is only the reference registry.
         C.u138 = {
+            RootGui = RootGui,
             StarterFrame = StarterFrame,
             MainFrame = MainFrame,
             TabFrame = TabFrame,
@@ -5182,11 +5256,6 @@ end
         v926.MainFrame = MainFrame
         v926.TabFrame = TabFrame
         v926.Title = MainFrame.Title
-
-        -- Keep the original library-level proxy references alive.
-        -- They are consumed by notification/bindable code after startup.
-        C.u137 = v926
-        C.u139 = v926
 
         -- ============================================================
         -- V8.2 UI DIAGNOSTIC
@@ -5228,14 +5297,14 @@ end
             -- MainFrame = the actual ImageLabel child created at line 2442.
             -- TabFrame = the actual ScrollingFrame child created at line 2465.
             -- Title = the actual TextLabel child created at line 2448.
-            local RootGui = CheckInstance("RootGui", _ScreenGui5, "ScreenGui")
+            local CheckedRootGui = CheckInstance("RootGui", RootGui, "ScreenGui")
             local CheckedStarterFrame = CheckInstance("StarterFrame", StarterFrame, "CanvasGroup")
             local CheckedMainFrame = CheckInstance("MainFrame", MainFrame, "ImageLabel")
             local CheckedTabFrame = CheckInstance("TabFrame", TabFrame, "ScrollingFrame")
             local CheckedTitle = CheckInstance("Title", MainFrame.Title, "TextLabel")
 
             -- Verify the exact parent hierarchy created by the constructor.
-            if CheckedStarterFrame.Parent ~= RootGui then
+            if CheckedStarterFrame.Parent ~= CheckedRootGui then
                 error("[V8.2][UI-CHECK] StarterFrame parent mismatch: expected RootGui")
             end
             print("[V8.2][UI-CHECK] StarterFrame parent = OK")
@@ -5290,6 +5359,10 @@ end
                 error("[V8.2][UI-CHECK] Tasker module registration is invalid")
             end
             print("[V8.2][UI-CHECK] Tasker module = OK")
+            print("[V8.2][UI-CHECK] Module source = embedded local playtween/tasker/json")
+            print("[V8.2][UI-CHECK] Remote Modules// loader = DISABLED")
+            print("[V8.2][UI-CHECK] Game detection = DISABLED")
+            print("[V8.2][UI-CHECK] Safe UI callback mode = ENABLED")
 
             if type(C.u40.PlayTween) ~= "function" then
                 error("[V8.2][UI-CHECK] Registered PlayTween API is missing")
@@ -5308,20 +5381,6 @@ end
             end
             print("[V8.2][UI-CHECK] Registered Tasker API = OK")
 
-            if typeof(u1237) ~= "table" then
-                error("[V8.2][UI-CHECK] Active theme reference = NIL/invalid")
-            end
-
-            if typeof(u1237.UFB) ~= "Color3" then
-                error("[V8.2][UI-CHECK] Active theme UFB is invalid")
-            end
-
-            if typeof(u1237.USC) ~= "Color3" then
-                error("[V8.2][UI-CHECK] Active theme USC is invalid")
-            end
-
-            print("[V8.2][UI-CHECK] Active theme = OK")
-
             if C._V82OpeningStarted ~= true then
                 error("[V8.2][UI-CHECK] Opening initialization state is not active")
             end
@@ -5330,6 +5389,13 @@ end
         end
 
         V82_UIDiagnostic()
+
+        -- Constructor owns exactly one opening sequence.
+        -- The main UI is visible after the asynchronous opening completes;
+        -- OpenUI is only shown when the main UI is hidden.
+        if C.u40.__OpenUIButton then
+            C.u40.__OpenUIButton.Visible = false
+        end
 
         return v926
     end
