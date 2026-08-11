@@ -3570,9 +3570,21 @@ u1237 = u935
 
             u930 = false
 
-            u1298(u1235, u1306.UIStroke)
-            u1298(u1239, u1306)
-            _AnimateRichText(u1290, u1306.Title, _TranslateMatchs3(u1290, p1288))
+u1298(u1235, u1306.UIStroke)
+u1298(u1239, u1306)
+
+print("[TEXT-CHECK] Raw tab title =", p1288, typeof(p1288))
+
+local TabTitle = _TranslateMatchs3(u1290, p1288)
+
+print("[TEXT-CHECK] Translated tab title =", TabTitle, typeof(TabTitle))
+
+if type(TabTitle) ~= "string" or TabTitle == "" then
+    TabTitle = tostring(p1288)
+    print("[TEXT-CHECK] FALLBACK =", TabTitle)
+end
+
+_AnimateRichText(u1290, u1306.Title, TabTitle)
 
             local u1310 = u915(0.3, u1234.Sine)
             local u1311 = {Transparency = 0.75}
